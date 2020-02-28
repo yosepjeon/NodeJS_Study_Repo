@@ -11,6 +11,7 @@ let app = http.createServer((request, response) => {
     let pathname = url.parse(_url, true).pathname;
     let title = queryData.id;
     let description = 'Hello Node.js';
+    let control = '';
 
     if (pathname === '/') {
         fs.readdir('./data', (error, fileList) => {
@@ -20,16 +21,20 @@ let app = http.createServer((request, response) => {
                 if (queryData.id === undefined) {
                     title = 'Welcome'
                     description = 'Hello, Node.js'
+                    control = `<a href="/create">create</a>`;
+                }else {
+                    control = `<a href="/create">create</a> <a href="/update?id=${title}">update</a>`;
                 }
+                
 
-                var template = templateHTML(title,list,description);
+                var template = templateHTML(title, list, description,control);
 
                 response.writeHead(200);
                 response.end(template);
             });
         });
-    } else if(pathname === '/create') {
-        fs.readdir('./data',(error,fileList) => {
+    } else if (pathname === '/create') {
+        fs.readdir('./data', (error, fileList) => {
             let title = 'WEB - create';
             let list = templateList(fileList);
 
@@ -39,26 +44,63 @@ let app = http.createServer((request, response) => {
                     <p><textarea name="description" placeholder="description"></textarea></p>
                     <p><input type="submit"></p>
                 </form>
-            `);
+            `,'');
 
             response.writeHead(200);
             response.end(template);
         });
-    }else if(pathname === '/create_process') {
+    } else if (pathname === '/create_process') {
         let body = '';
-        request.on('data',(data) => {
+        request.on('data', (data) => {
+            body = body + data;
+        });
+
+        request.on('end', () => {
+            let post = qs.parse(body);
+            let title = post.title;
+            let description = post.description;
+
+            fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+                response.writeHead(302, { Location: `/?id=${title}` });
+                response.end();
+            });
+        });
+    } else if(pathname === '/update') {
+        fs.readdir('./data',(error, fileList) => {
+            fs.readFile(`./data/${queryData.id}`, 'utf8', (err,description) => {
+                let title = queryData.id;
+                let list = templateList(fileList);
+                let template = templateHTML(title, list ,`
+                    <form action="/update_process" method="post">
+                        <input type="hidden" name="id" value="${title}">
+                        <p><input type="text" name="title" placeholder="title" value="${title}"></p>
+                        <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                        <p><input type="submit"></p>
+                    </form>
+                `,`<a href="/create">create</a> <a href="/update?id=${title}">update</a>`);
+
+                response.writeHead(200);
+                response.end(template);
+            });
+        });
+    } else if(pathname === '/update_process') {
+        let body = '';
+        request.on('data', (data) => {
             body = body + data;
         });
 
         request.on('end',() => {
             let post = qs.parse(body);
+            let id = post.id;
             let title = post.title;
             let description = post.description;
 
-            fs.writeFile(`data/${title}`,description,'utf8',(err) => {
-                response.writeHead(302,{Location:`/?id=${title}`});
-                response.end();
-            });
+            fs.rename(`/data/${id}`, `./data/${title}`, (error) => {
+                fs.writeFile(`./data/${title}`,description, 'utf8', (err) => {
+                    response.writeHead(302, {Location: `/?id=${title}`});
+                    response.end();
+                });
+            })
         });
     } else {
         response.writeHead(404);
@@ -66,7 +108,7 @@ let app = http.createServer((request, response) => {
     }
 });
 
-function templateHTML(title, list, description) {
+function templateHTML(title, list, description,control) {
     var template = `
         <!doctype html>
         <html>
@@ -77,13 +119,13 @@ function templateHTML(title, list, description) {
         <body>
           <h1><a href="/">WEB</a></h1>
             ${list}
-          <a href="/create">create</a>
-          ${description}
+            ${control}
+            ${description}
         </body>
         </html>
         `;
 
-        return template;
+    return template;
 }
 
 function templateList(fileList) {

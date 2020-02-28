@@ -1,8 +1,11 @@
-var http = require('http');
-var fs = require('fs');
-var url = require('url');
+'use strict'
 
-var app = http.createServer((request, response) => {
+let http = require('http');
+let fs = require('fs');
+let url = require('url');
+let qs = require('qs');
+
+let app = http.createServer((request, response) => {
     let _url = request.url;
     let queryData = url.parse(_url, true).query;
     let pathname = url.parse(_url, true).pathname;
@@ -31,7 +34,7 @@ var app = http.createServer((request, response) => {
             let list = templateList(fileList);
 
             let template = templateHTML(title, list, `
-                <form action="http://localhost:3000/process_create" method="post">
+                <form action="http://localhost:3000/create_process" method="post">
                     <p><input type="text" name="title" placeholder="title"></p>
                     <p><textarea name="description" placeholder="description"></textarea></p>
                     <p><input type="submit"></p>
@@ -40,6 +43,22 @@ var app = http.createServer((request, response) => {
 
             response.writeHead(200);
             response.end(template);
+        });
+    }else if(pathname === '/create_process') {
+        let body = '';
+        request.on('data',(data) => {
+            body = body + data;
+        });
+
+        request.on('end',() => {
+            let post = qs.parse(body);
+            let title = post.title;
+            let description = post.description;
+
+            fs.writeFile(`data/${title}`,description,'utf8',(err) => {
+                response.writeHead(302,{Location:`/?id=${title}`});
+                response.end();
+            });
         });
     } else {
         response.writeHead(404);

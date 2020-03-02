@@ -9,9 +9,9 @@ let mysql = require('mysql');
 
 let db = mysql.createConnection({
   host: 'localhost',
-  user: '*',
-  password: '*@',
-  database: '*-practice'
+  user: 'enekelx1',
+  password: 'enekeldytpq1Q@',
+  database: 'yosep-practice'
 });
 db.connect();
 
@@ -148,12 +148,15 @@ let app = http.createServer(function (request, response) {
     });
     request.on('end', function () {
       let post = qs.parse(body);
-      let id = post.id;
-      let filteredId = path.parse(id).base;
-      fs.unlink(`data/${filteredId}`, function (error) {
-        response.writeHead(302, { Location: `/` });
-        response.end();
-      })
+
+      db.query(`DELETE FROM topic WHERE id = ?`, [post.id],(error,result) => {
+        if(error) {
+          throw error;
+        }else {
+          response.writeHead(302,{Location:`/`});
+          response.end();
+        }
+      });
     });
   } else {
     response.writeHead(404);

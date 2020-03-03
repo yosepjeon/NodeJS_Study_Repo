@@ -2,6 +2,7 @@ let db = require('./db');
 let template = require('./template');
 let url = require('url');
 let qs = require('querystring');
+let sanitizeHtml = require('sanitize-html');
 
 exports.home = function (request, response) {
     db.query(`SELECT * FROM topic`, (error, topics) => {
@@ -36,7 +37,7 @@ exports.page = function (request, response) {
             let description = topic[0].description;
             let list = template.list(topics);
             let html = template.HTML(title, list,
-                `<h2>${title}</h2>${description} <p>by ${topic[0].name}</p>`,
+                `<h2>${sanitizeHtml(title)}</h2>${sanitizeHtml(description)} <p>by ${sanitizeHtml(topic[0].name)}</p>`,
                 ` <a href="/create">create</a>
                       <a href="/update?id=${queryData.id}">update</a>
                       <form action="delete_process" method="post">
@@ -55,7 +56,7 @@ exports.create = function (request, response) {
         db.query(`SELECT * FROM author`, (error2, authors) => {
             let title = 'Create';
             let list = template.list(topics);
-            let html = template.HTML(title, list,
+            let html = template.HTML(sanitizeHtml(title), list,
                 `
               <form action="/create_process" method="post">
                 <p><input type="text" name="title" placeholder="title"></p>
@@ -115,11 +116,11 @@ exports.update = function (request, response) {
 
                 db.query(`SELECT * FROM author`, (error3, authors) => {
                     let list = template.list(topics);
-                    let html = template.HTML(topic[0].title, list, `
+                    let html = template.HTML(sanitizeHtml(topic[0].title), list, `
                 <form action="/update_process" method="post">
                   <input type="hidden" name="id" value="${topic[0].id}">
-                  <p><input type="text" name="title" value="${topic[0].title}"></p>
-                  <p><textarea name="description" placeholder="description">${topic[0].description}</textarea></p>
+                  <p><input type="text" name="title" value="${sanitizeHtml(topic[0].title)}"></p>
+                  <p><textarea name="description" placeholder="description">${sanitizeHtml(topic[0].description)}</textarea></p>
                   <p>${template.authorSelect(authors, topic[0].author_id)}</p>
                   <p><input type="submit"></p>
                 </form>
